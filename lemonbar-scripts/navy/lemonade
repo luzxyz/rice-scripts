@@ -1,0 +1,121 @@
+#!/bin/bash
+
+color0="#29230A"
+color1="#FBAB3C"
+color2="#262222"
+color3="#DCD3CA"
+color4="#F6FAD6"
+
+
+sysinfo_format(){
+  if [ ! 1 -gt "$2" ]; then
+    echo "%{U$color0}%{+o}%{B-} $1 %{B-}%{-o}%{U-}"
+  else
+    echo "%{B$color3} $1 %{B-}"
+  fi
+}
+
+Workspaces(){
+  desktops=$(bspc query -D --names)
+  focused=$(bspc query -D --names -d focused)
+  output=""
+
+  while IFS= read -r desktop; do
+
+    n_nodes=$(bspc query -N -d $desktop)
+    
+    if [ ! -z "$n_nodes" ]; then
+      if [ "$desktop" = "$focused" ]; then
+        desktop="%{B$color0}%{F$color4}        ${desktop}        %{F-}%{B-}"
+      else
+        desktop="%{B$color0}%{F$color1}        ${desktop}        %{F-}%{B-}"
+      fi
+      output="${output} ${desktop}"
+    fi
+  done <<< "$desktops"
+
+  echo -e "${output:1}"
+}
+
+Audio(){
+  audio=$(pactl list sinks | grep '^[[:space:]]Volume:' | head -n $(( $SINK + 1 )) | tail -n 1 | sed -e 's,.* \([0-9][0-9]*\)%.*,\1,')
+
+  audio=$((audio / 10))
+
+  output=""
+
+  for n in {1..10}; do
+    if [ "$audio" -le "0" ]; then
+      output="${output}▭"
+    else
+      output="${output}▬"
+    fi
+    audio=$((audio - 1))
+  done
+   
+  sysinfo_format "${output:1}" 1
+}
+
+Memory(){
+  output=$(echo -e "%{F$color2} $(free --mebi | grep Mem | awk '{print $3}') MeB%{F-}")
+  sysinfo_format "$output" 0
+}
+
+# This method takes more time
+Cpu(){
+  idle=$(mpstat 1 1 --dec=1 | sed '1,4d;s/.* //')
+  output=$((100 - $idle))
+  output=$($output | xargs printf "%.2f")
+
+  output=$(echo -e "%{F$color2}$output%{F-}")
+
+  sysinfo_format "$output" 0
+}
+
+CpuTemp(){
+  temp=$(sensors | grep "Tctl" | sed "s/Tctl: *+//;s/ºC *//")
+  output=""
+
+  if [ 1 -eq "$(echo "${temp:0:4} > 80" | bc)" ]; then
+    output=$(echo -e "%{F#FF0000}${temp:0:6}%{F-}")
+  elif [ 1 -eq "$(echo "${temp:0:4} > 60" | bc)" ]; then
+    output=$(echo -e "%{F#FFA929}${temp:0:6}%{F-}")
+  else
+    output=$(echo -e "%{F$color2}${temp:0:6}%{F-}")
+  fi
+
+  sysinfo_format "$output" 0
+
+}
+
+Clock(){
+  DATE=$(date "+%d/%m/%y")
+  TIME=$(date "+%Ih%Mm%Ss")
+  output=$(echo -e "%{F$color2}${DATE}%{F-} %{F$color2}${TIME}%{F-}")
+
+  sysinfo_format "$output" 0
+}
+
+Uptime(){
+  uptime=$(uptime | awk '{print $3}' | cut -d',' -f1 )
+  output=$(echo -e "%{F$color2}Running for: $uptime%{F-}")
+
+  sysinfo_format "$output" 0
+
+}
+
+
+_separator(){
+  #echo -e "%{F$color3} >> %{F-}"
+  echo -e "  "
+}
+
+Update(){
+	echo -e "%{l}$(Workspaces)%{B-} %{r}$(Audio)%{+o}$(_separator)$(Memory)$(_separator)$(CpuTemp)$(_separator)$(_separator)$(Clock)%{-o}"
+}
+
+while true; do
+  Update
+  sleep 1s &
+  wait
+done
