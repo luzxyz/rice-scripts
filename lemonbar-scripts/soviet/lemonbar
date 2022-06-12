@@ -1,0 +1,27 @@
+#! /bin/dash
+
+# Assures one instance
+killall -q -o 2s lemonbar &
+killall -q -o 2s lemonade &
+
+BAR_HEIGHT=1880
+BAR_WIDTH=20
+BAR_DX=20
+BAR_DY=10
+
+BAR_FG_COLOR="#FF333331"
+BAR_BG_COLOR="#FFf0eee9"
+
+BAR_ULINE_COLOR="#c91426"
+
+BAR_FONTNAME="neepmod"
+
+
+# <!> Replace the script location
+exec $HOME/scripts/lemonade | 
+	lemonbar -p -g $BAR_WIDTHx$BAR_HEIGHT+$BAR_DX+$BAR_DY \
+	-F $BAR_FG_COLOR \
+	-B $BAR_BG_COLOR \
+	-u 4 -U $BAR_ULINE_COLOR \
+	-o -2 \
+	-f $BAR_FONTNAME

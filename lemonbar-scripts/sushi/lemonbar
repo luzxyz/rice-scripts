@@ -1,0 +1,13 @@
+#!/bin/zsh
+
+# Assures one instance
+# Not implemented yet on my desktop
+#killall -q lemonbar
+#killall -q lemonade
+
+
+# <!> Replace the script location
+# It uses the X11's sketchy font name convention, try out the lemonbar-xft(?) from AUR to use more friendly names
+# The flags U and u are for underlines, it is yet unused
+#exec $HOME/scripts/lemonade | lemonbar -p -g x18+0+0 -F "#FF262222" -B "#00FF2222" -U "#FBAB3C" -u 3 -f "-adobe-*-regular-r-*-*-12-120-*-*-*-*-*-2"
+exec $HOME/scripts/lemonade | lemonbar -p -g x18+0+10 -F "#FF262222" -B "#00FF2222" -U "#29230A" -u 2 -f "pango:monospace:size=8"

@@ -1,0 +1,125 @@
+#!/bin/bash
+
+color0="#333331" # Dark text
+color1="#c91426" # oppresion red
+color2="#e09934" # burnt flats
+color3="#346e9e" # blue army
+
+color4="#f0eee9" # not so white
+color5="#e0deda" # darker white
+
+sysinfo_format(){
+  echo "%{B$2}$1%{B-}"
+}
+
+
+Workspaces(){
+  desktops=$(bspc query -D --names)
+  focused=$(bspc query -D --names -d focused)
+  output="   "
+
+  while IFS= read -r desktop; do
+
+    n_nodes=$(bspc query -N -d $desktop)
+    
+    if [ ! -z "$n_nodes" ]; then
+      if [ "$desktop" = "$focused" ]; then
+        desktop="%{B$color5}%{+u} ${desktop} %{-u}%{B-}"	
+      else
+        desktop=" ${desktop} "
+      fi
+      output="${output}${desktop}"
+    fi
+  done <<< "$desktops"
+  
+  output="${output}   "
+  echo -e "${output:1}"
+}
+
+Audio(){
+  audio=$(pactl list sinks | grep '^[[:space:]]Volume:' | head -n $(( $SINK + 1 )) | tail -n 1 | sed -e 's,.* \([0-9][0-9]*\)%.*,\1,')
+
+  audio=$((audio / 10))
+
+  output=""
+
+  for n in {1..10}; do
+    if [ "$audio" -le "0" ]; then
+      output="${output}="
+    else
+      output="${output}|"
+    fi
+    audio=$((audio - 1))
+  done
+   
+  sysinfo_format "${output:1} ||" "$color4"
+}
+
+Memory(){
+  memory=$(free --mebi | grep Mem | awk '{print $3}')
+  output=$(echo -e "%{F$color0} $memory MeB%{F-}")
+  sysinfo_format "$output" "$color4"
+}
+
+# This method takes more time
+Cpu(){
+  idle=$(mpstat 1 1 --dec=1 | sed '1,4d;s/.* //')
+  output=$((100 - $idle))
+  output=$($output | xargs printf "%.2f")
+
+  output=$(echo "$output")
+
+  sysinfo_format "$output" 0
+}
+
+CpuTemp(){
+  temp=$(sensors | grep "Tctl" | sed "s/Tctl: *+//;s/ºC *//")
+  output=""
+  if [ 1 -eq "$(echo "${temp:0:4} > 80" | bc)" ]; then
+    output=$(echo -e "%{B$color1} ${temp:0:6} %{B-}")
+  elif [ 1 -eq "$(echo "${temp:0:4} > 60" | bc)" ]; then
+    output=$(echo -e "%{B$color2} ${temp:0:6} %{B-}")
+  else
+    output=$(echo -e "%{B$color0}%{F$color4} ${temp:0:6} %{F-}%{B-}")
+  fi
+
+  sysinfo_format "$output" "$color4"
+
+}
+
+kb_layout(){
+ L_DIR='/home/yorch/scripts/langcode.code'
+ LANGCODE=$(< $L_DIR)
+ case $LANGCODE in
+  "0") sysinfo_format "%{B$color3}%{F$color4}%{U$color2}%{+u} en.US %{-u}%{F-}%{U-}%{B-}" "$color4";;
+  "1") sysinfo_format "%{B$color1}%{F$color4}%{U$color0}%{+u} ru.RU %{-u}%{F-}%{U-}%{B-}" "$color4";;
+  "2") sysinfo_format "%{B$color2}%{U$color3}%{+u} es.ES %{-u}%{U-}%{B-}" "$color4";;
+  *) sysinfo_format " ERR " 0;;
+ esac
+}
+
+Clock(){
+  DATE=$(date "+%d/%m/%y")
+  TIME=$(date "+%Hh%Mm%Ss")
+  output=$(echo -e "%{U$color0}%{+u}${DATE} ${TIME}"%{-u}%{U-})
+
+  sysinfo_format "$output" "$color4"
+}
+
+Uptime(){
+  uptime=$(uptime | awk '{print $3}' | cut -d',' -f1 )
+  output=$(echo -e "%{+u}%{F$color0}<TIME>$uptime%{F-}%{-u}")
+
+  sysinfo_format "$output" "$color4"
+}
+
+
+Update(){
+  echo -e "%{l}$(CpuTemp)$(Uptime)$(Memory)%{c}$(Workspaces)%{B-}%{r}$(Audio)$(kb_layout)$(Clock)"
+}
+
+while true; do
+  Update
+  sleep 0.025s &
+  wait
+done
