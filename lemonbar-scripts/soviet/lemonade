@@ -103,7 +103,7 @@ Clock(){
   TIME=$(date "+%Hh%Mm%Ss")
   output=$(echo -e "%{U$color0}%{+u}${DATE} ${TIME}"%{-u}%{U-})
 
-  sysinfo_format "$output" "$color4"
+  sysinfo_format " $output" "$color4"
 }
 
 Uptime(){
